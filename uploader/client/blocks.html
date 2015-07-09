@@ -1,0 +1,9 @@
+<template name="c_clientside_upload">
+    {{> UI.contentBlock}}
+</template>
+
+<template name="imageUpload">
+    {{#c_clientside_upload}}
+        <input type="file" name="file" data-preset="{{preset}}" data-meta="{{meta}}">
+    {{/c_clientside_upload}}
+</template>
