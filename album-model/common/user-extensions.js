@@ -15,5 +15,5 @@ User.prototype.albums = function (limit, skip, sortBy, sortOrder) {
         options.sort = sort;
     }
 
-    return Meteor.albums.find({userId:this._id});
+    return Meteor.albums.find({userId:this._id}, options);
 };
