@@ -1,10 +1,10 @@
-Template.c_clientside_upload.rendered = function () {
+Template.imageUpload.onRendered(function () {
     var input = this.$('[type=file]');
     var meta = getMeta(input);
     var callback = this.data && this.data.callback;
 
     // Bind the change handler for the file input.
-    input.bind('change', function (evt) {
+    input.on('change', function (evt) {
         if (window.File && window.FileReader && window.FileList && window.Blob) {
             var files = evt.target.files;
 
@@ -18,7 +18,7 @@ Template.c_clientside_upload.rendered = function () {
 
                 var reader = new FileReader();
 
-                // immediate function to capture the filename and avoid race condition
+                // iife to capture the filename and avoid race condition
                 reader.onload = (function (fileRead) {
                     var fileName = fileRead.name; // get the name of file to use as annotation
 
@@ -42,15 +42,21 @@ Template.c_clientside_upload.rendered = function () {
                 reader.readAsDataURL(file);
             }
         } else {
-            alert('The File APIs are not fully supported in this browser.');
+            alert('File APIs are not fully supported in this browser.');
         }
     });
 
-    var preset = getPreset(input);
-    var cloudinaryUploadParams = getCloudinaryOptions(input);
+    Meteor.call('signUpload', function (error, response) {
+        if(!error){
+            input.cloudinary_fileupload({
+                formData: response
+            });
+        }else{
+            throw new Meteor.Error("SigningFailed", "Signing of cloudinary upload failed", error);
+        }
+    });
 
-    // Set up an unsigned upload
-    input.unsigned_cloudinary_upload(preset, cloudinaryUploadParams).bind('cloudinarydone', function (e, data) {
+    input.on('cloudinarydone', function (e, data) {
         var fileName = data.files[0].name; // get the name of the file
         var result = data.result; // get the result from cloudinary
 
@@ -74,7 +80,9 @@ Template.c_clientside_upload.rendered = function () {
             Meteor.call(callback, Meteor.photos.findOne(photoId));
         }
 
-    }).bind('fileuploadprogress', function (event, data) {
+    });
+
+    input.on('fileuploadprogress', function (event, data) {
 
         var fileName = data.files[0].name;
 
@@ -82,20 +90,23 @@ Template.c_clientside_upload.rendered = function () {
         // update the record with progress information
         _cloudinary.update({file_name: fileName}, {$set: {percentUploaded:percentUploaded}});
 
-    }).bind('cloudinaryfail', function (e) {
-        throw new Meteor.Error("cloudinaryError", "Cloudinary error uploading file. " + e.message);
     });
-};
 
-Template.c_clientside_upload.destroyed = function () {
+    input.on('cloudinaryfail', function (error) {
+        throw new Meteor.Error("cloudinaryError", "Cloudinary error uploading file. ", error);
+    });
+
+});
+
+Template.imageUpload.destroyed = function () {
     var input = this.$('[type=file]');
-    input.unbind("cloudinarystop");
-    input.unbind('cloudinarystart');
-    input.unbind('cloudinaryprogress');
-    input.unbind('cloudinarydone');
+    input.off("change");
+    input.off('cloudinarydone');
+    input.off('fileuploadprogress');
+    input.off('cloudinaryfail');
 };
 
-/* Expects a string "role:collector,userId:1234,...", return and object {role:'collector',userId:'1234'}
+/* Expects a string "role:profile,albumId:9bx3DsdfDF38Fxldp", returns an object {role:'profile',albumId:'9bx3DsdfDF38Fxldp'}
  */
 var getMeta = function ($input) {
     var meta = {};
@@ -110,41 +121,4 @@ var getMeta = function ($input) {
     }
 
     return meta;
-};
-
-var getPreset = function ($input) {
-    var preset = $input.data("preset");
-    if (preset) {
-        return preset;
-    }
-};
-
-var getCloudinaryOptions = function($input) {
-    var options = {};
-
-    var tags = $input.data("tags");
-
-    if (tags) {
-        options.tags = tags;
-    }
-
-    var context = {}; // $input.data("context")|| {};
-    // if debugging add an extra tag
-    if ($.cloudinary.config().debug) {
-        context = {alt: 'debug'};
-    }
-    if (context) {
-        options.context = context;
-    }
-
-    var publicId = $input.data('publicId');
-    if (publicId) {
-        options.public_id = publicId;
-    }
-
-    // var folder = $input.data('folder');
-    // if(folder){
-    // 	options.folder = folder;
-    // }
-    return options;
 };
