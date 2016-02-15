@@ -1,4 +1,8 @@
-Photo = CommentableModel.extendAndSetupCollection("photos");
+Photo = BaseModel.extendAndSetupCollection("photos");
+
+CommentableModel.makeCommentable(Photo, "photo");
+
+LikeableModel.makeLikeable(Photo, "photo");
 
 Photo.prototype.url = function (options) {
     if(options){
