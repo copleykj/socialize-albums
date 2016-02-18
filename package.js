@@ -12,7 +12,7 @@ Package.onUse(function(api) {
     });
 
     api.use([
-        "socialize:user-model@0.1.4", "socialize:commentable@0.1.0"
+        "socialize:user-model@0.1.6", "socialize:commentable@0.2.1"
     ]);
 
     api.imply("socialize:user-model");
